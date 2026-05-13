@@ -3,7 +3,7 @@ import sqlite3, os
 from datetime import datetime
 
 app = Flask(__name__)
-DB = "banco.db"
+DB = "/tmp/banco.db"
 
 def init_db():
     conn = sqlite3.connect(DB)
@@ -20,6 +20,8 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+
+init_db()
 
 @app.route("/leituras", methods=["POST"])
 def receber():
@@ -42,6 +44,7 @@ def receber():
 
 @app.route("/leituras", methods=["GET"])
 def listar():
+    init_db()
     conn = sqlite3.connect(DB)
     rows = conn.execute("""
         SELECT * FROM leituras
@@ -55,8 +58,3 @@ def listar():
 @app.route("/", methods=["GET"])
 def home():
     return "API funcionando!", 200
-
-if __name__ == "__main__":
-    init_db()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
