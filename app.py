@@ -70,44 +70,41 @@ def home():
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard IoT</title>
+  <title>Leituras IoT</title>
   <style>
-    body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
-    h1 { color: #0f0; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th { background: #0f0; color: #111; padding: 8px 12px; }
-    td { padding: 8px 12px; border-bottom: 1px solid #333; }
-    tr:hover { background: #1a1a1a; }
-    .btn { background: #0f0; color: #111; border: none; padding: 8px 16px;
-           cursor: pointer; font-family: monospace; font-size: 14px;
-           margin-right: 8px; border-radius: 4px; }
-    .btn.red { background: #f00; color: #fff; }
-    .status { margin: 10px 0; color: #888; font-size: 13px; }
+    body { font-family: Arial, sans-serif; padding: 32px; color: #222; }
+    h1 { font-size: 20px; font-weight: normal; margin-bottom: 16px; }
+    button { padding: 6px 14px; margin-right: 8px; cursor: pointer;
+             border: 1px solid #999; background: #fff; border-radius: 4px; }
+    button.red { border-color: #c00; color: #c00; }
+    table { border-collapse: collapse; width: 100%; margin-top: 16px; font-size: 14px; }
+    th { text-align: left; border-bottom: 2px solid #222; padding: 8px 12px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #ddd; }
+    .status { font-size: 12px; color: #888; margin-top: 8px; }
   </style>
 </head>
 <body>
-  <h1>📡 Dashboard IoT — Leituras em tempo real</h1>
-  <button class="btn" onclick="carregar()">🔄 Atualizar agora</button>
-  <button class="btn red" onclick="limpar()">🗑️ Limpar banco</button>
-  <div class="status" id="status">Aguardando...</div>
+  <h1>Leituras IoT</h1>
+  <button onclick="carregar()">Atualizar</button>
+  <button class="red" onclick="limpar()">Limpar banco</button>
+  <div class="status" id="status"></div>
   <table>
     <thead>
       <tr>
-        <th>#</th><th>Timestamp</th><th>Temp (°C)</th>
+        <th>#</th><th>Timestamp</th><th>Temp (C)</th>
         <th>Umidade (%)</th><th>Luminosidade</th>
-        <th>Presença</th><th>Prob. Vida (%)</th>
+        <th>Presenca</th><th>Prob. Vida (%)</th>
       </tr>
     </thead>
     <tbody id="tabela"></tbody>
   </table>
   <script>
     async function carregar() {
-      document.getElementById('status').textContent = 'Atualizando...';
       const res = await fetch('/leituras');
       const dados = await res.json();
       const tbody = document.getElementById('tabela');
       if (dados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888">Nenhuma leitura ainda</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="color:#888">Nenhuma leitura ainda.</td></tr>';
       } else {
         tbody.innerHTML = dados.map(d => `
           <tr>
@@ -116,12 +113,12 @@ def home():
             <td>${d.temperatura_c ?? '-'}</td>
             <td>${d.umidade_pct ?? '-'}</td>
             <td>${d.luminosidade ?? '-'}</td>
-            <td>${d.presenca == 1 ? '✅ Sim' : '❌ Não'}</td>
+            <td>${d.presenca == 1 ? 'Sim' : 'Nao'}</td>
             <td>${d.probabilidade_vida ?? '-'}</td>
           </tr>`).join('');
       }
       document.getElementById('status').textContent =
-        `Última atualização: ${new Date().toLocaleTimeString()} — ${dados.length} registro(s)`;
+        'Atualizado em ' + new Date().toLocaleTimeString() + ' — ' + dados.length + ' registro(s)';
     }
     async function limpar() {
       if (!confirm('Limpar todos os dados?')) return;
