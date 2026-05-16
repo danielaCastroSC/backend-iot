@@ -140,7 +140,7 @@ def home():
             backgroundColor: cor + '22',
             borderWidth: 2,
             pointRadius: 3,
-            tension: 0.3,
+            tension: 0,
             fill: true
           }]
         },
