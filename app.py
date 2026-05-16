@@ -127,8 +127,11 @@ def home():
   <script>
     let charts = {};
 
-    function criarGrafico(id, label, cor) {
+    function criarGrafico(id, label, cor, yMin, yMax, tipo) {
       const ctx = document.getElementById(id).getContext('2d');
+      const scaleY = tipo === 'log'
+        ? { type: 'logarithmic', min: yMin, max: yMax, ticks: { font: { size: 11 } } }
+        : { min: yMin, max: yMax, ticks: { font: { size: 11 } } };
       return new Chart(ctx, {
         type: 'line',
         data: {
@@ -149,7 +152,7 @@ def home():
           plugins: { legend: { display: false } },
           scales: {
             x: { ticks: { maxTicksLimit: 6, font: { size: 11 } } },
-            y: { ticks: { font: { size: 11 } } }
+            y: scaleY
           }
         }
       });
@@ -162,10 +165,10 @@ def home():
     }
 
     window.onload = function() {
-      charts.temp = criarGrafico('graficoTemp', 'Temperatura', '#e05c2a');
-      charts.umid = criarGrafico('graficoUmid', 'Umidade', '#2a7ae0');
-      charts.lumi = criarGrafico('graficoLumi', 'Luminosidade', '#e0b02a');
-      charts.prob = criarGrafico('graficoProb', 'Prob. Vida', '#2ae07a');
+      charts.temp = criarGrafico('graficoTemp', 'Temperatura', '#e05c2a', -40, 80);
+      charts.umid = criarGrafico('graficoUmid', 'Umidade',     '#2a7ae0',   0, 100);
+      charts.lumi = criarGrafico('graficoLumi', 'Luminosidade','#e0b02a', 0.1, 100000, 'log');
+      charts.prob = criarGrafico('graficoProb', 'Prob. Vida',  '#2ae07a',   0, 100);
       carregar();
     };
 
@@ -174,7 +177,7 @@ def home():
       const dados = await res.json();
 
       const invertidos = [...dados].reverse();
-      const labels = invertidos.map((d, i) => '#' + d.id);
+      const labels = invertidos.map(d => '#' + d.id);
 
       atualizarGrafico(charts.temp, labels, invertidos.map(d => d.temperatura_c));
       atualizarGrafico(charts.umid, labels, invertidos.map(d => d.umidade_pct));
