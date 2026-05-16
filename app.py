@@ -71,16 +71,21 @@ def home():
 <head>
   <meta charset="UTF-8">
   <title>Leituras IoT</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 32px; color: #222; }
+    body { font-family: Arial, sans-serif; padding: 32px; color: #222; background: #fff; }
     h1 { font-size: 20px; font-weight: normal; margin-bottom: 16px; }
     button { padding: 6px 14px; margin-right: 8px; cursor: pointer;
              border: 1px solid #999; background: #fff; border-radius: 4px; }
     button.red { border-color: #c00; color: #c00; }
-    table { border-collapse: collapse; width: 100%; margin-top: 16px; font-size: 14px; }
+    .status { font-size: 12px; color: #888; margin: 8px 0 24px; }
+    .graficos { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+    .grafico-box { border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
+    .grafico-box h2 { font-size: 14px; font-weight: normal; margin: 0 0 12px; color: #555; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
     th { text-align: left; border-bottom: 2px solid #222; padding: 8px 12px; }
     td { padding: 8px 12px; border-bottom: 1px solid #ddd; }
-    .status { font-size: 12px; color: #888; margin-top: 8px; }
+    @media (max-width: 600px) { .graficos { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -88,6 +93,26 @@ def home():
   <button onclick="carregar()">Atualizar</button>
   <button class="red" onclick="limpar()">Limpar banco</button>
   <div class="status" id="status"></div>
+
+  <div class="graficos">
+    <div class="grafico-box">
+      <h2>Temperatura (°C)</h2>
+      <canvas id="graficoTemp"></canvas>
+    </div>
+    <div class="grafico-box">
+      <h2>Umidade (%)</h2>
+      <canvas id="graficoUmid"></canvas>
+    </div>
+    <div class="grafico-box">
+      <h2>Luminosidade</h2>
+      <canvas id="graficoLumi"></canvas>
+    </div>
+    <div class="grafico-box">
+      <h2>Probabilidade de Vida (%)</h2>
+      <canvas id="graficoProb"></canvas>
+    </div>
+  </div>
+
   <table>
     <thead>
       <tr>
@@ -98,34 +123,89 @@ def home():
     </thead>
     <tbody id="tabela"></tbody>
   </table>
+
   <script>
+    let charts = {};
+
+    function criarGrafico(id, label, cor) {
+      const ctx = document.getElementById(id).getContext('2d');
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: label,
+            data: [],
+            borderColor: cor,
+            backgroundColor: cor + '22',
+            borderWidth: 2,
+            pointRadius: 3,
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { maxTicksLimit: 6, font: { size: 11 } } },
+            y: { ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function atualizarGrafico(chart, labels, valores) {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = valores;
+      chart.update();
+    }
+
+    window.onload = function() {
+      charts.temp = criarGrafico('graficoTemp', 'Temperatura', '#e05c2a');
+      charts.umid = criarGrafico('graficoUmid', 'Umidade', '#2a7ae0');
+      charts.lumi = criarGrafico('graficoLumi', 'Luminosidade', '#e0b02a');
+      charts.prob = criarGrafico('graficoProb', 'Prob. Vida', '#2ae07a');
+      carregar();
+    };
+
     async function carregar() {
       const res = await fetch('/leituras');
       const dados = await res.json();
+
+      const invertidos = [...dados].reverse();
+      const labels = invertidos.map((d, i) => '#' + d.id);
+
+      atualizarGrafico(charts.temp, labels, invertidos.map(d => d.temperatura_c));
+      atualizarGrafico(charts.umid, labels, invertidos.map(d => d.umidade_pct));
+      atualizarGrafico(charts.lumi, labels, invertidos.map(d => d.luminosidade));
+      atualizarGrafico(charts.prob, labels, invertidos.map(d => d.probabilidade_vida));
+
       const tbody = document.getElementById('tabela');
       if (dados.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="color:#888">Nenhuma leitura ainda.</td></tr>';
       } else {
-        tbody.innerHTML = dados.map(d => `
-          <tr>
-            <td>${d.id}</td>
-            <td>${d.timestamp}</td>
-            <td>${d.temperatura_c ?? '-'}</td>
-            <td>${d.umidade_pct ?? '-'}</td>
-            <td>${d.luminosidade ?? '-'}</td>
-            <td>${d.presenca == 1 ? 'Sim' : 'Nao'}</td>
-            <td>${d.probabilidade_vida ?? '-'}</td>
-          </tr>`).join('');
+        tbody.innerHTML = dados.map(d => '<tr>' +
+          '<td>' + d.id + '</td>' +
+          '<td>' + d.timestamp + '</td>' +
+          '<td>' + (d.temperatura_c ?? '-') + '</td>' +
+          '<td>' + (d.umidade_pct ?? '-') + '</td>' +
+          '<td>' + (d.luminosidade ?? '-') + '</td>' +
+          '<td>' + (d.presenca == 1 ? 'Sim' : 'Nao') + '</td>' +
+          '<td>' + (d.probabilidade_vida ?? '-') + '</td>' +
+          '</tr>').join('');
       }
+
       document.getElementById('status').textContent =
         'Atualizado em ' + new Date().toLocaleTimeString() + ' — ' + dados.length + ' registro(s)';
     }
+
     async function limpar() {
       if (!confirm('Limpar todos os dados?')) return;
       await fetch('/limpar');
       carregar();
     }
-    carregar();
+
     setInterval(carregar, 3000);
   </script>
 </body>
